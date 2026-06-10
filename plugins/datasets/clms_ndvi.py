@@ -59,7 +59,7 @@ class ClmsNdviPlugin:
             crs=4326,
             dtype=np.dtype("float32"),
             nodata=float("nan"),
-            time_dim="time",
+            time_dim="t",
         )
 
     async def periods(self, start: str, end: str) -> list[str]:
@@ -135,6 +135,6 @@ class ClmsNdviPlugin:
             da = da.isel(y=slice(None, None, -1))
 
         ds = da.to_dataset(name=_VAR)
-        ds = ds.expand_dims(time=[np.datetime64(period_id)])
+        ds = ds.expand_dims(t=[np.datetime64(period_id)])
         ds = ds.load()
         return ds

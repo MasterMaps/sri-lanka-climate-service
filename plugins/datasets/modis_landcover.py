@@ -82,7 +82,7 @@ class ModisLandCoverPlugin:
             crs=4326,
             dtype=np.dtype("uint8"),
             nodata=255,
-            time_dim="time",
+            time_dim="t",
         )
 
     async def periods(self, start: str, end: str) -> list[str]:
@@ -155,5 +155,5 @@ class ModisLandCoverPlugin:
             da = da.isel(y=slice(None, None, -1))
 
         ds = da.to_dataset(name=_VAR)
-        ds = ds.expand_dims(time=[np.datetime64(f"{year}-01-01")])
+        ds = ds.expand_dims(t=[np.datetime64(f"{year}-01-01")])
         return ds.load()

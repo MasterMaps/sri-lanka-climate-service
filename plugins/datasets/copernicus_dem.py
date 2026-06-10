@@ -37,7 +37,7 @@ def _tile_url(lat: int, lon: int) -> str:
 class CopernicusDemPlugin:
     """IngestionPlugin for Copernicus DEM GLO-30.
 
-    Static (time_dim=False): the store is written once and not extended.
+    Effectively static: a single nominal timestep is written and not extended.
     Tiles covering the bbox are fetched via HTTP range requests from the
     AWS Open Data bucket — no authentication required.
     """
@@ -56,7 +56,7 @@ class CopernicusDemPlugin:
             crs=4326,
             dtype=np.dtype("float32"),
             nodata=float("nan"),
-            time_dim=False,
+            time_dim="t",
         )
 
     async def periods(self, start: str, end: str) -> list[str]:
@@ -100,4 +100,6 @@ class CopernicusDemPlugin:
             merged = merged.isel(y=slice(None, None, -1))
 
         ds = merged.to_dataset(name="elevation")
+        # OCS coverage/publish requires a time dimension; carry one nominal step.
+        ds = ds.expand_dims(t=[np.datetime64("2010-01-01")])
         return ds

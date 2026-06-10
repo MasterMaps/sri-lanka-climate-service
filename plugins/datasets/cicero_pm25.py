@@ -57,7 +57,7 @@ class CiceroPm25Plugin:
             crs=4326,
             dtype=np.dtype("float32"),
             nodata=float("nan"),
-            time_dim="time",
+            time_dim="t",
         )
 
     async def periods(self, start: str, end: str) -> list[str]:
@@ -84,6 +84,6 @@ class CiceroPm25Plugin:
         da.attrs["units"] = "μg m⁻³"
 
         result = da.rename(_VAR).to_dataset()
-        result = result.expand_dims(time=[np.datetime64(period_id)])
+        result = result.expand_dims(t=[np.datetime64(period_id)])
         result = result.load()
         return result

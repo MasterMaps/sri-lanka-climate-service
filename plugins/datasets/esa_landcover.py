@@ -58,7 +58,7 @@ class EsaLandCoverPlugin:
             crs=4326,
             dtype=np.dtype("uint8"),
             nodata=0,
-            time_dim="time",
+            time_dim="t",
         )
 
     async def periods(self, start: str, end: str) -> list[str]:
@@ -111,9 +111,9 @@ class EsaLandCoverPlugin:
                 ds = ds.rename(rename)
 
             # Ensure a single-element time dimension
-            if "time" not in ds.dims:
-                ds = ds.expand_dims(dim="time").assign_coords(
-                    time=[np.datetime64(f"{year}-01-01", "ns")]
+            if "t" not in ds.dims:
+                ds = ds.expand_dims(dim="t").assign_coords(
+                    t=[np.datetime64(f"{year}-01-01", "ns")]
                 )
 
             # zarr-layer requires y ascending (south-to-north)

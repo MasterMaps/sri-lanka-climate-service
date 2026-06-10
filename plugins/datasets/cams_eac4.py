@@ -95,7 +95,7 @@ class CamsEac4Plugin:
             crs=4326,
             dtype=np.dtype("float32"),
             nodata=float("nan"),
-            time_dim="time",
+            time_dim="t",
         )
 
     async def periods(self, start: str, end: str) -> list[str]:
@@ -146,7 +146,7 @@ class CamsEac4Plugin:
 
         da = da * 1e9  # kg/m³ → μg/m³
         ds = da.to_dataset(name=self.variable)
-        ds = ds.expand_dims(time=[np.datetime64(period_id)])
+        ds = ds.expand_dims(t=[np.datetime64(period_id)])
         return ds.load()
 
     def _download_month(self, year: int, month: int, bbox: list[float]) -> xr.Dataset:
