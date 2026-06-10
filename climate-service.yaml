@@ -9,4 +9,3 @@ extent:
 data_dir: ./data
 plugins_dir: ./plugins/
 
-crs: EPSG:32644
