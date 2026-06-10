@@ -1,0 +1,25 @@
+- id: worldpop_population_1km_yearly
+  name: Total population 1km (WorldPop Global2)
+  short_name: Population 1km
+  variable: pop_total
+  period_type: yearly
+  sync:
+    kind: release
+  extents:
+    spatial:
+      bbox: [-180, -90, 180, 90]
+    temporal:
+      begin: "2015"
+      end: "2030"
+      resolution: P1Y
+  ingestion:
+    plugin: datasets.worldpop_1km.WorldPop1kmYearlyPlugin
+    params:
+      variable: pop_total
+  units: people
+  resolution: 1km x 1km
+  source: WorldPop Global2 (1 km global mosaic, constrained UA)
+  source_url: https://hub.worldpop.org/project/categories?id=3
+  display:
+    colormap: reds
+    range: [1.0, 5000.0]

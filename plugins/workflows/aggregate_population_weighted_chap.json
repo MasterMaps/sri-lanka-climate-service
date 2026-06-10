@@ -1,0 +1,67 @@
+{
+  "id": "aggregate_population_weighted_chap",
+  "summary": "Population-weighted aggregation of a climate variable to org units (CHAP CSV)",
+  "description": "Replicates the DHIS2 Climate Tools population-weighting guide server-side. Loads a climate dataset and a WorldPop population dataset, computes the population-weighted mean of the climate variable within each GeoJSON feature for each time step — sum(value * population) / sum(population) — and exports CHAP-ready wide CSV (one row per location-period).\n\nThe population is loaded without a temporal filter and averaged to a single weighting surface inside aggregate_spatial_weighted (its spatial pattern is stable year to year, and the weighted mean is normalised), then aligned to the climate grid by nearest-neighbour interpolation.\n\nUsage — submit as a process graph (synchronous POST /result or a batch job):\n\n{\n  \"agg\": {\n    \"process_id\": \"aggregate_population_weighted_chap\",\n    \"arguments\": {\n      \"dataset_id\": \"cicero_pm25_daily\",\n      \"population_dataset_id\": \"worldpop_population_1km_yearly\",\n      \"temporal_extent\": [\"2023-01-01\", \"2023-01-31\"],\n      \"geometries\": { \"type\": \"FeatureCollection\", \"features\": [ ... ] },\n      \"period_type\": \"day\"\n    },\n    \"result\": true\n  }\n}",
+  "parameters": [
+    {
+      "name": "dataset_id",
+      "description": "Published climate GeoZarr collection to aggregate (e.g. cicero_pm25_daily).",
+      "schema": { "type": "string" }
+    },
+    {
+      "name": "population_dataset_id",
+      "description": "Published population GeoZarr collection used as weights.",
+      "schema": { "type": "string" },
+      "default": "worldpop_population_1km_yearly"
+    },
+    {
+      "name": "temporal_extent",
+      "description": "Time range to load the climate data as [start, end] ISO-8601 dates.",
+      "schema": { "type": "array", "subtype": "temporal-interval" }
+    },
+    {
+      "name": "geometries",
+      "description": "GeoJSON FeatureCollection of organisation units. Each feature's id becomes the CSV location.",
+      "schema": { "type": "object", "subtype": "geojson" }
+    },
+    {
+      "name": "period_type",
+      "description": "Period type used to format each time step as time_period (day, week, month, quarter, year). Should match the climate dataset's native resolution.",
+      "schema": { "type": "string" },
+      "default": "month"
+    }
+  ],
+  "process_graph": {
+    "climate": {
+      "process_id": "load_collection",
+      "arguments": {
+        "id": { "from_parameter": "dataset_id" },
+        "temporal_extent": { "from_parameter": "temporal_extent" }
+      }
+    },
+    "population": {
+      "process_id": "load_collection",
+      "arguments": { "id": { "from_parameter": "population_dataset_id" } }
+    },
+    "weighted": {
+      "process_id": "aggregate_spatial_weighted",
+      "arguments": {
+        "data": { "from_node": "climate" },
+        "weights": { "from_node": "population" },
+        "geometries": { "from_parameter": "geometries" }
+      }
+    },
+    "save": {
+      "process_id": "save_result",
+      "arguments": {
+        "data": { "from_node": "weighted" },
+        "format": "CHAPCSV",
+        "options": {
+          "location_field": "geometry",
+          "period_type": { "from_parameter": "period_type" }
+        }
+      },
+      "result": true
+    }
+  }
+}
