@@ -6,7 +6,7 @@ description = "Open Climate Service instance for Sri Lanka"
 dependencies = [
     "boto3",
     "cdsapi>=0.7.7",
-    "open-climate-service @ git+https://github.com/dhis2/open-climate-service.git",
+    "open-climate-service[server] @ git+https://github.com/dhis2/open-climate-service.git",
     "ecmwf-datastores-client",
     "pystac-client>=0.9.0",
 ]
