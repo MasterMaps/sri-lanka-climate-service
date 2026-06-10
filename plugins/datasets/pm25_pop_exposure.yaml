@@ -16,5 +16,5 @@
   source: Cicero PM2.5 x WorldPop Global2 1km (OCS population_exposure workflow)
   source_url: https://climate-tools.dhis2.org/guides/aggregation/population-weighting/
   display:
-    colormap: reds
+    colormap: YlOrRd
     range: [0.0, 50000.0]
