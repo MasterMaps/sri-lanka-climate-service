@@ -1,0 +1,67 @@
+{
+  "id": "population_exposure",
+  "summary": "Population exposure raster (climate value x population) as a new GeoZarr",
+  "description": "Builds a gridded population-exposure dataset: loads a climate dataset and a population dataset, multiplies the climate variable by the population surface per pixel and time step (population aligned to the climate grid by nearest-neighbour interpolation), and publishes the result as a new GeoZarr dataset. For example PM2.5 x WorldPop gives population-weighted PM2.5 exposure (units person*ug/m3).\n\nThe output_dataset_id must have a registered dataset template on the instance (sync: {kind: static} with a display block). Run as a batch job (Zarr output is batch-only):\n\n{\n  \"x\": {\n    \"process_id\": \"population_exposure\",\n    \"arguments\": {\n      \"dataset_id\": \"cicero_pm25_daily\",\n      \"population_dataset_id\": \"worldpop_population_1km_yearly\",\n      \"output_dataset_id\": \"cicero_pm25_pop_exposure\",\n      \"variable\": \"pm25_pop_exposure\",\n      \"temporal_extent\": [\"2023-01-01\", \"2023-01-31\"]\n    },\n    \"result\": true\n  }\n}",
+  "parameters": [
+    {
+      "name": "dataset_id",
+      "description": "Published climate GeoZarr collection (e.g. cicero_pm25_daily).",
+      "schema": { "type": "string" }
+    },
+    {
+      "name": "population_dataset_id",
+      "description": "Published population GeoZarr collection used as weights.",
+      "schema": { "type": "string" },
+      "default": "worldpop_population_1km_yearly"
+    },
+    {
+      "name": "output_dataset_id",
+      "description": "ID of the exposure dataset to publish. Must have a registered dataset template.",
+      "schema": { "type": "string" }
+    },
+    {
+      "name": "variable",
+      "description": "Output variable/band name (e.g. pm25_pop_exposure).",
+      "schema": { "type": "string" },
+      "default": "exposure"
+    },
+    {
+      "name": "temporal_extent",
+      "description": "Time range of the climate data to process as [start, end] ISO-8601 dates.",
+      "schema": { "type": "array", "subtype": "temporal-interval" }
+    }
+  ],
+  "process_graph": {
+    "climate": {
+      "process_id": "load_collection",
+      "arguments": {
+        "id": { "from_parameter": "dataset_id" },
+        "temporal_extent": { "from_parameter": "temporal_extent" }
+      }
+    },
+    "population": {
+      "process_id": "load_collection",
+      "arguments": { "id": { "from_parameter": "population_dataset_id" } }
+    },
+    "exposure": {
+      "process_id": "population_exposure",
+      "arguments": {
+        "data": { "from_node": "climate" },
+        "weights": { "from_node": "population" }
+      }
+    },
+    "save": {
+      "process_id": "save_result",
+      "arguments": {
+        "data": { "from_node": "exposure" },
+        "format": "Zarr",
+        "options": {
+          "dataset_id": { "from_parameter": "output_dataset_id" },
+          "variable": { "from_parameter": "variable" },
+          "publish": true
+        }
+      },
+      "result": true
+    }
+  }
+}

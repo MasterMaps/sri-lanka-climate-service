@@ -1,0 +1,20 @@
+- id: cicero_pm25_pop_exposure
+  name: PM2.5 population exposure (Cicero x WorldPop 1km)
+  short_name: PM2.5 exposure
+  variable: pm25_pop_exposure
+  period_type: daily
+  sync:
+    kind: static
+  extents:
+    spatial:
+      bbox: [78.005, 5.505, 82.495, 9.995]
+    temporal:
+      begin: "2020-03"
+      resolution: P1D
+  units: "person µg m⁻³"
+  resolution: ~1km
+  source: Cicero PM2.5 x WorldPop Global2 1km (OCS population_exposure workflow)
+  source_url: https://climate-tools.dhis2.org/guides/aggregation/population-weighting/
+  display:
+    colormap: reds
+    range: [0.0, 50000.0]
