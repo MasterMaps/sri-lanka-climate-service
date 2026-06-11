@@ -101,6 +101,79 @@ def run_workflow(instance: str, process_id: str, arguments: dict) -> pd.DataFram
     return df.groupby("location")[value_cols[0]].mean().rename(process_id)
 
 
+def render_full(merged, *, lo, hi, pmax, label, extent, out):
+    """Three-panel analytical view: unweighted, weighted, and the % difference.
+
+    Every district is labelled — dense for inspection, not for a slide.
+    """
+    # representative_point() stays inside concave/multipart districts (unlike centroid).
+    pts = [(pt.x, pt.y) for pt in merged.geometry.representative_point()]
+    stroke = [pe.withStroke(linewidth=1.6, foreground="white")]  # readable on any fill
+
+    fig, axes = plt.subplots(1, 3, figsize=(19, 8))
+    panels = [
+        ("aggregate_to_chap_csv", "Unweighted (simple mean)", "YlOrRd", lo, hi, "{:.1f}"),
+        ("aggregate_population_weighted_chap", "Population-weighted", "YlOrRd", lo, hi, "{:.1f}"),
+        ("pct_diff", "Weighted - Unweighted (%)", "RdBu_r", -pmax, pmax, "{:+.0f}%"),
+    ]
+    for ax, (col, title, cmap, vmin, vmax, fmt) in zip(axes, panels):
+        merged.plot(column=col, cmap=cmap, vmin=vmin, vmax=vmax, legend=True, ax=ax,
+                    edgecolor="0.5", linewidth=0.3, legend_kwds={"shrink": 0.6})
+        for (x, y), val in zip(pts, merged[col]):
+            ax.annotate(fmt.format(val), (x, y), ha="center", va="center",
+                        fontsize=5.5, color="black", path_effects=stroke)
+        ax.set_title(title, fontsize=12)
+        ax.axis("off")
+    fig.suptitle(f"{label} by district — {extent[0]} to {extent[1]} (population weighting effect)", fontsize=14)
+    fig.tight_layout()
+    fig.savefig(out, dpi=150, bbox_inches="tight")
+    print(f"Wrote {out}")
+
+
+def render_presentation(merged, *, lo, hi, pmax, label, extent, out, title=None):
+    """Slide-ready two-panel view: population-weighted values + the % effect.
+
+    Drops the (near-identical-looking) unweighted map and leads with the punchline:
+    the weighted choropleth plus where weighting actually moves the number. Only the
+    districts with the largest shift are labelled, so the message reads at a distance.
+    """
+    pts = [(pt.x, pt.y) for pt in merged.geometry.representative_point()]
+    stroke = [pe.withStroke(linewidth=2.2, foreground="white")]
+
+    # Name only the districts where weighting moves the value most (avoid 25-label clutter).
+    notable = set(merged["pct_diff"].abs().sort_values(ascending=False).head(8).index)
+
+    fig, axes = plt.subplots(1, 2, figsize=(15, 9))
+    panels = [
+        (axes[0], "aggregate_population_weighted_chap", "Population-weighted PM2.5",
+         "YlOrRd", lo, hi, label, "{:.0f}"),
+        (axes[1], "pct_diff", "Effect of population weighting",
+         "RdBu_r", -pmax, pmax, "% change vs simple mean", "{:+.0f}%"),
+    ]
+    for ax, col, sub, cmap, vmin, vmax, cbar_label, fmt in panels:
+        merged.plot(column=col, cmap=cmap, vmin=vmin, vmax=vmax, legend=True, ax=ax,
+                    edgecolor="0.5", linewidth=0.4, legend_kwds={"shrink": 0.55, "label": cbar_label})
+        for idx, (x, y) in zip(merged.index, pts):
+            if idx in notable:
+                name = str(merged.loc[idx, "name"]).replace(" District", "")
+                ax.annotate(f"{name}\n{fmt.format(merged.loc[idx, col])}", (x, y),
+                            ha="center", va="center", fontsize=7.5, fontweight="bold",
+                            color="black", path_effects=stroke)
+        ax.set_title(sub, fontsize=13)
+        ax.axis("off")
+
+    head = title or "Population weighting raises PM2.5 most in Sri Lanka's dense districts"
+    fig.suptitle(head, fontsize=18, fontweight="bold", y=0.99)
+    fig.text(0.5, 0.93,
+             "Simple district averages underestimate exposure where people live in the more-polluted "
+             "areas (red) and overestimate it where they don't (blue).  "
+             f"{label} · {extent[0]} to {extent[1]}.",
+             ha="center", fontsize=10.5, color="0.25")
+    fig.tight_layout(rect=(0, 0, 1, 0.92))
+    fig.savefig(out, dpi=150, bbox_inches="tight")
+    print(f"Wrote {out}")
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--instance", default="http://localhost:8014")
@@ -112,6 +185,10 @@ def main() -> None:
     p.add_argument("--geometries", default=None, help="Org-unit GeoJSON path (overrides --gadm-country)")
     p.add_argument("--label", default=None, help="Variable label for the colour bar (e.g. 'PM2.5 (ug/m3)')")
     p.add_argument("--out", default="population_weighting_comparison.png")
+    p.add_argument("--presentation", action="store_true",
+                   help="Slide-ready 2-panel layout (weighted + %% effect) with a bold takeaway "
+                        "and labels only on the most-affected districts")
+    p.add_argument("--title", default=None, help="Override the headline (presentation mode only)")
     args = p.parse_args()
 
     gdf = load_districts(args.geometries, args.gadm_country)
@@ -144,28 +221,23 @@ def main() -> None:
     pmax = float(merged["pct_diff"].abs().max()) or 1.0
     label = args.label or args.dataset
 
-    # representative_point() stays inside concave/multipart districts (unlike centroid).
-    pts = [(p.x, p.y) for p in merged.geometry.representative_point()]
-    stroke = [pe.withStroke(linewidth=1.6, foreground="white")]  # keep labels readable on any fill
+    if args.presentation:
+        render_presentation(merged, lo=lo, hi=hi, pmax=pmax, label=label, extent=extent,
+                            out=args.out, title=args.title)
+    else:
+        render_full(merged, lo=lo, hi=hi, pmax=pmax, label=label, extent=extent, out=args.out)
 
-    fig, axes = plt.subplots(1, 3, figsize=(19, 8))
-    panels = [
-        ("aggregate_to_chap_csv", "Unweighted (simple mean)", "YlOrRd", lo, hi, "{:.1f}"),
-        ("aggregate_population_weighted_chap", "Population-weighted", "YlOrRd", lo, hi, "{:.1f}"),
-        ("pct_diff", "Weighted - Unweighted (%)", "RdBu_r", -pmax, pmax, "{:+.0f}%"),
-    ]
-    for ax, (col, title, cmap, vmin, vmax, fmt) in zip(axes, panels):
-        merged.plot(column=col, cmap=cmap, vmin=vmin, vmax=vmax, legend=True, ax=ax,
-                    edgecolor="0.5", linewidth=0.3, legend_kwds={"shrink": 0.6})
-        for (x, y), val in zip(pts, merged[col]):
-            ax.annotate(fmt.format(val), (x, y), ha="center", va="center",
-                        fontsize=5.5, color="black", path_effects=stroke)
-        ax.set_title(title, fontsize=12)
-        ax.axis("off")
-    fig.suptitle(f"{label} by district — {extent[0]} to {extent[1]} (population weighting effect)", fontsize=14)
-    fig.tight_layout()
-    fig.savefig(args.out, dpi=150, bbox_inches="tight")
-    print(f"Wrote {args.out}")
+    # Per-district table next to the figure, for the record / slide notes.
+    csv_path = Path(args.out).with_suffix(".csv")
+    table = (merged[["name", "aggregate_to_chap_csv", "aggregate_population_weighted_chap",
+                     "difference", "pct_diff"]]
+             .rename(columns={"aggregate_to_chap_csv": "unweighted",
+                              "aggregate_population_weighted_chap": "weighted",
+                              "pct_diff": "pct_change"})
+             .sort_values("pct_change", ascending=False))
+    table.to_csv(csv_path, index=False, float_format="%.2f")
+    print(f"Wrote {csv_path}")
+
     # Quick numeric summary of the weighting effect.
     biggest = merged.reindex(merged["difference"].abs().sort_values(ascending=False).index).head(5)
     print("\nLargest weighting shifts (district: unweighted -> weighted, diff):")
