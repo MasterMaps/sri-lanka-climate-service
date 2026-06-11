@@ -42,6 +42,7 @@ import geopandas as gpd
 import matplotlib
 
 matplotlib.use("Agg")
+import matplotlib.patheffects as pe  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 import pandas as pd  # noqa: E402
 import requests  # noqa: E402
@@ -133,27 +134,37 @@ def main() -> None:
 
     merged = gdf.merge(unweighted, left_on="name", right_index=True).merge(weighted, left_on="name", right_index=True)
     merged["difference"] = merged["aggregate_population_weighted_chap"] - merged["aggregate_to_chap_csv"]
+    merged["pct_diff"] = 100.0 * merged["difference"] / merged["aggregate_to_chap_csv"]
 
-    # Shared colour scale for the two aggregation maps; symmetric scale for the diff.
+    # Shared colour scale for the two aggregation maps; symmetric % scale for the diff.
+    # (The weighting shift is small vs the across-district spread, so the two maps look
+    # alike — the per-district labels and the % panel make the effect legible.)
     lo = float(min(merged["aggregate_to_chap_csv"].min(), merged["aggregate_population_weighted_chap"].min()))
     hi = float(max(merged["aggregate_to_chap_csv"].max(), merged["aggregate_population_weighted_chap"].max()))
-    dmax = float(merged["difference"].abs().max()) or 1.0
+    pmax = float(merged["pct_diff"].abs().max()) or 1.0
     label = args.label or args.dataset
 
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+    # representative_point() stays inside concave/multipart districts (unlike centroid).
+    pts = [(p.x, p.y) for p in merged.geometry.representative_point()]
+    stroke = [pe.withStroke(linewidth=1.6, foreground="white")]  # keep labels readable on any fill
+
+    fig, axes = plt.subplots(1, 3, figsize=(19, 8))
     panels = [
-        ("aggregate_to_chap_csv", "Unweighted (simple mean)", "YlOrRd", lo, hi),
-        ("aggregate_population_weighted_chap", "Population-weighted", "YlOrRd", lo, hi),
-        ("difference", "Weighted - Unweighted", "RdBu_r", -dmax, dmax),
+        ("aggregate_to_chap_csv", "Unweighted (simple mean)", "YlOrRd", lo, hi, "{:.1f}"),
+        ("aggregate_population_weighted_chap", "Population-weighted", "YlOrRd", lo, hi, "{:.1f}"),
+        ("pct_diff", "Weighted - Unweighted (%)", "RdBu_r", -pmax, pmax, "{:+.0f}%"),
     ]
-    for ax, (col, title, cmap, vmin, vmax) in zip(axes, panels):
+    for ax, (col, title, cmap, vmin, vmax, fmt) in zip(axes, panels):
         merged.plot(column=col, cmap=cmap, vmin=vmin, vmax=vmax, legend=True, ax=ax,
-                    edgecolor="0.6", linewidth=0.3, legend_kwds={"shrink": 0.6})
+                    edgecolor="0.5", linewidth=0.3, legend_kwds={"shrink": 0.6})
+        for (x, y), val in zip(pts, merged[col]):
+            ax.annotate(fmt.format(val), (x, y), ha="center", va="center",
+                        fontsize=5.5, color="black", path_effects=stroke)
         ax.set_title(title, fontsize=12)
         ax.axis("off")
     fig.suptitle(f"{label} by district — {extent[0]} to {extent[1]} (population weighting effect)", fontsize=14)
     fig.tight_layout()
-    fig.savefig(args.out, dpi=130, bbox_inches="tight")
+    fig.savefig(args.out, dpi=150, bbox_inches="tight")
     print(f"Wrote {args.out}")
     # Quick numeric summary of the weighting effect.
     biggest = merged.reindex(merged["difference"].abs().sort_values(ascending=False).index).head(5)
