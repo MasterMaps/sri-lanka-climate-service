@@ -25,7 +25,7 @@ from typing import Any
 import numpy as np
 import xarray as xr
 
-from open_climate_service.streaming.protocol import GridSpec
+from open_climate_service.streaming import BaseDatasetPlugin
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ def _odata_download(url: str, dest: str, token: str) -> None:
                 f.write(chunk)
 
 
-class ModisLandCoverPlugin:
+class ModisLandCoverPlugin(BaseDatasetPlugin):
     """IngestionPlugin for MODIS MCD12Q1 yearly land cover via CDSE STAC.
 
     Downloads HDF tiles for the bbox, reprojects from sinusoidal to WGS84,
@@ -72,18 +72,6 @@ class ModisLandCoverPlugin:
     commit_batch_size = 1
     rechunk_time = 5
     pyramid: bool = True
-
-    async def probe(self, bbox: list[float], **_: Any) -> GridSpec:
-        xmin, ymin, xmax, ymax = map(float, bbox)
-        nx = max(1, round((xmax - xmin) / _RES_DEG))
-        ny = max(1, round((ymax - ymin) / _RES_DEG))
-        return GridSpec(
-            shape=(ny, nx),
-            crs=4326,
-            dtype=np.dtype("uint8"),
-            nodata=255,
-            time_dim="t",
-        )
 
     async def periods(self, start: str, end: str) -> list[str]:
         sy = max(int(start[:4]), _FIRST_YEAR)

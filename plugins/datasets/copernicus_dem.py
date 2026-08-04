@@ -17,7 +17,7 @@ from typing import Any
 import numpy as np
 import xarray as xr
 
-from open_climate_service.streaming.protocol import GridSpec
+from open_climate_service.streaming import BaseDatasetPlugin
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def _tile_url(lat: int, lon: int) -> str:
     return f"{_S3_BASE}/{name}/{name}.tif"
 
 
-class CopernicusDemPlugin:
+class CopernicusDemPlugin(BaseDatasetPlugin):
     """IngestionPlugin for Copernicus DEM GLO-30.
 
     Effectively static: a single nominal timestep is written and not extended.
@@ -46,18 +46,6 @@ class CopernicusDemPlugin:
     commit_batch_size = 1
     rechunk_time: int | None = None
     pyramid: bool = True
-
-    async def probe(self, bbox: list[float], **_: Any) -> GridSpec:
-        xmin, ymin, xmax, ymax = map(float, bbox)
-        nx = max(1, math.ceil((xmax - xmin) / _RES_DEG))
-        ny = max(1, math.ceil((ymax - ymin) / _RES_DEG))
-        return GridSpec(
-            shape=(ny, nx),
-            crs=4326,
-            dtype=np.dtype("float32"),
-            nodata=float("nan"),
-            time_dim="t",
-        )
 
     async def periods(self, start: str, end: str) -> list[str]:
         return ["static"]
