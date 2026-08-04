@@ -31,7 +31,7 @@ from typing import Any
 import numpy as np
 import xarray as xr
 
-from open_climate_service.streaming.protocol import GridSpec
+from open_climate_service.streaming import BaseDatasetPlugin
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ def _get_ads_key() -> str:
     )
 
 
-class CamsEac4Plugin:
+class CamsEac4Plugin(BaseDatasetPlugin):
     """IngestionPlugin for CAMS EAC4 3-hourly data via the ADS API.
 
     Downloads one calendar month per API request and caches it in memory;
@@ -84,19 +84,6 @@ class CamsEac4Plugin:
         self.variable = variable
         self._cached_month: tuple[int, int] | None = None
         self._cached_ds: xr.Dataset | None = None
-
-    async def probe(self, bbox: list[float], **_: Any) -> GridSpec:
-        xmin, ymin, xmax, ymax = map(float, bbox)
-        pad = _RES_DEG
-        nx = max(1, round((xmax - xmin + 2 * pad) / _RES_DEG))
-        ny = max(1, round((ymax - ymin + 2 * pad) / _RES_DEG))
-        return GridSpec(
-            shape=(ny, nx),
-            crs=4326,
-            dtype=np.dtype("float32"),
-            nodata=float("nan"),
-            time_dim="t",
-        )
 
     async def periods(self, start: str, end: str) -> list[str]:
         if start[:10] < _FIRST_DATE:

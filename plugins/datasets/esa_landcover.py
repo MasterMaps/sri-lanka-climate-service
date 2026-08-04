@@ -19,7 +19,7 @@ from typing import Any
 import numpy as np
 import xarray as xr
 
-from open_climate_service.streaming.protocol import GridSpec
+from open_climate_service.streaming import BaseDatasetPlugin
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ def _cds_version(year: int) -> str:
     return "v2_0_7cds" if year <= 2015 else "v2_1_1"
 
 
-class EsaLandCoverPlugin:
+class EsaLandCoverPlugin(BaseDatasetPlugin):
     """IngestionPlugin for ESA CCI Land Cover yearly data via CDS API.
 
     Downloads per-year NetCDF files clipped to the bbox, extracts the
@@ -48,18 +48,6 @@ class EsaLandCoverPlugin:
     commit_batch_size = 1
     rechunk_time = 5
     pyramid: bool = True
-
-    async def probe(self, bbox: list[float], **_: Any) -> GridSpec:
-        xmin, ymin, xmax, ymax = map(float, bbox)
-        nx = max(1, round((xmax - xmin) / _RES_DEG))
-        ny = max(1, round((ymax - ymin) / _RES_DEG))
-        return GridSpec(
-            shape=(ny, nx),
-            crs=4326,
-            dtype=np.dtype("uint8"),
-            nodata=0,
-            time_dim="t",
-        )
 
     async def periods(self, start: str, end: str) -> list[str]:
         sy = max(int(start[:4]), _FIRST_YEAR)

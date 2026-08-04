@@ -22,7 +22,7 @@ from typing import Any
 import numpy as np
 import xarray as xr
 
-from open_climate_service.streaming.protocol import GridSpec
+from open_climate_service.streaming import BaseDatasetPlugin
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ def _dekadal_dates(start: str, end: str) -> list[str]:
             year += 1
 
 
-class ClmsGppPlugin:
+class ClmsGppPlugin(BaseDatasetPlugin):
     """IngestionPlugin for CLMS GPP 300m 10-daily data via CDSE STAC.
 
     Fetches Cloud-Optimised GeoTIFFs from the Copernicus Data Space Ecosystem
@@ -74,18 +74,6 @@ class ClmsGppPlugin:
     commit_batch_size = 1
     rechunk_time = 30
     pyramid: bool = True
-
-    async def probe(self, bbox: list[float], **_: Any) -> GridSpec:
-        xmin, ymin, xmax, ymax = map(float, bbox)
-        nx = max(1, round((xmax - xmin) / _RES_DEG))
-        ny = max(1, round((ymax - ymin) / _RES_DEG))
-        return GridSpec(
-            shape=(ny, nx),
-            crs=4326,
-            dtype=np.dtype("float32"),
-            nodata=float("nan"),
-            time_dim="t",
-        )
 
     async def periods(self, start: str, end: str) -> list[str]:
         import pystac_client

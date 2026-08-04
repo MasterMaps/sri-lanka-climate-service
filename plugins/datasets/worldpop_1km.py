@@ -22,7 +22,7 @@ import requests
 import rioxarray  # noqa: F401  # registers .rio
 import xarray as xr
 
-from open_climate_service.streaming.protocol import GridSpec
+from open_climate_service.streaming import BaseDatasetPlugin
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ def _read_clip(year: int, bbox: list[float]) -> xr.Dataset:
     return da.to_dataset(name="pop_total")
 
 
-class WorldPop1kmYearlyPlugin:
+class WorldPop1kmYearlyPlugin(BaseDatasetPlugin):
     """Streaming plugin for yearly WorldPop Global2 1 km population over the extent."""
 
     max_concurrency = 1
@@ -75,19 +75,6 @@ class WorldPop1kmYearlyPlugin:
 
     def __init__(self, variable: str = "pop_total", **_: object) -> None:
         self.variable = variable
-
-    async def probe(self, bbox: list[float], **_: Any) -> GridSpec:
-        dataset = await asyncio.to_thread(_read_clip, _PROBE_YEAR, bbox)
-        try:
-            return GridSpec(
-                shape=(int(dataset.sizes["y"]), int(dataset.sizes["x"])),
-                crs=4326,
-                dtype=np.dtype("float32"),
-                nodata=float("nan"),
-                time_dim="t",
-            )
-        finally:
-            dataset.close()
 
     async def periods(self, start: str, end: str) -> list[str]:
         start_year = max(int(str(start)[:4]), _FIRST_YEAR)
