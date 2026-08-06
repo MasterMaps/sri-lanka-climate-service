@@ -62,8 +62,6 @@ def _read_clip(year: int, bbox: list[float]) -> xr.Dataset:
         minx=xmin, miny=ymin, maxx=xmax, maxy=ymax
     )
     da = da.squeeze("band", drop=True).astype("float32")
-    if float(da.y.values[0]) > float(da.y.values[-1]):
-        da = da.isel(y=slice(None, None, -1))
     return da.to_dataset(name="pop_total")
 
 

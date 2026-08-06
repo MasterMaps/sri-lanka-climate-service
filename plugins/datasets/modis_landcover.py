@@ -138,10 +138,6 @@ class ModisLandCoverPlugin(BaseDatasetPlugin):
 
         da = da.where(da < 255).astype("uint8")
 
-        # Ensure y ascending (south → north)
-        if da.y.values[0] > da.y.values[-1]:
-            da = da.isel(y=slice(None, None, -1))
-
         ds = da.to_dataset(name=_VAR)
         ds = ds.expand_dims(t=[np.datetime64(f"{year}-01-01")])
         return ds.load()

@@ -121,11 +121,6 @@ class CamsEac4Plugin(BaseDatasetPlugin):
         da = ds_month[self.variable].sel({time_coord: target}, method="nearest")
         da = da.drop_vars(time_coord, errors="ignore")
 
-        # Ensure y ascending (south → north)
-        lat_dim = "latitude" if "latitude" in da.dims else "y"
-        if float(da[lat_dim].values[0]) > float(da[lat_dim].values[-1]):
-            da = da.isel({lat_dim: slice(None, None, -1)})
-
         # Rename latitude/longitude → y/x
         rename = {k: v for k, v in (("latitude", "y"), ("longitude", "x")) if k in da.dims}
         if rename:
