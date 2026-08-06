@@ -104,9 +104,5 @@ class EsaLandCoverPlugin(BaseDatasetPlugin):
                     t=[np.datetime64(f"{year}-01-01", "ns")]
                 )
 
-            # zarr-layer requires y ascending (south-to-north)
-            if "y" in ds.dims and ds.y.values[0] > ds.y.values[-1]:
-                ds = ds.isel(y=slice(None, None, -1))
-
             ds = ds.load()
         return ds

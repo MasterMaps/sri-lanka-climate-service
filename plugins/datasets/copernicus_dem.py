@@ -82,11 +82,6 @@ class CopernicusDemPlugin(BaseDatasetPlugin):
         merged = merge_arrays(arrays) if len(arrays) > 1 else arrays[0]
         merged = merged.astype(np.float32)
 
-        # zarr-layer requires y to be ascending (south-to-north); GeoTIFF tiles
-        # come north-to-south, so flip if needed.
-        if merged.y.values[0] > merged.y.values[-1]:
-            merged = merged.isel(y=slice(None, None, -1))
-
         ds = merged.to_dataset(name="elevation")
         # OCS coverage/publish requires a time dimension; carry one nominal step.
         ds = ds.expand_dims(t=[np.datetime64("2010-01-01")])

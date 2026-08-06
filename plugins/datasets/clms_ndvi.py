@@ -118,10 +118,6 @@ class ClmsNdviPlugin(BaseDatasetPlugin):
                 else:
                     os.environ[k] = v
 
-        # Ensure y is ascending (south → north)
-        if da.y.values[0] > da.y.values[-1]:
-            da = da.isel(y=slice(None, None, -1))
-
         ds = da.to_dataset(name=_VAR)
         ds = ds.expand_dims(t=[np.datetime64(period_id)])
         ds = ds.load()
