@@ -11,7 +11,7 @@
       end: "2023-12-31"
       resolution: P1D
   ingestion:
-    plugin: datasets.cicero_pm25.CiceroPm25Plugin
+    plugin: rasters.cicero_pm25.CiceroPm25Plugin
     params:
       file_path: /Users/mastermaps/Downloads/pm_final_srilanka_linearp.nc
   units: "μg m⁻³"

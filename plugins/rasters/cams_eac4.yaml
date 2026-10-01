@@ -13,7 +13,7 @@
       begin: "2003-01-01"
       resolution: PT3H
   ingestion:
-    plugin: datasets.cams_eac4.CamsEac4Plugin
+    plugin: rasters.cams_eac4.CamsEac4Plugin
     params:
       api_variable: particulate_matter_2.5um
       variable: pm2p5

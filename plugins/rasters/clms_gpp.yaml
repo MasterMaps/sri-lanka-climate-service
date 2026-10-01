@@ -12,7 +12,7 @@
       begin: "2014-01-01"
       resolution: P10D
   ingestion:
-    plugin: datasets.clms_gpp.ClmsGppPlugin
+    plugin: rasters.clms_gpp.ClmsGppPlugin
     params: {}
   units: "g C m⁻² day⁻¹"
   resolution: 300m x 300m

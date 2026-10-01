@@ -12,7 +12,7 @@
       begin: "1992"
       resolution: P1Y
   ingestion:
-    plugin: datasets.esa_landcover.EsaLandCoverPlugin
+    plugin: rasters.esa_landcover.EsaLandCoverPlugin
     params: {}
   units: null
   resolution: 300m x 300m

@@ -12,7 +12,7 @@
       begin: "2010"
       resolution: P1Y
   ingestion:
-    plugin: datasets.copernicus_dem.CopernicusDemPlugin
+    plugin: rasters.copernicus_dem.CopernicusDemPlugin
     params: {}
   units: m
   resolution: 30m x 30m
