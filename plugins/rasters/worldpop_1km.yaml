@@ -13,7 +13,7 @@
       end: "2030"
       resolution: P1Y
   ingestion:
-    plugin: datasets.worldpop_1km.WorldPop1kmYearlyPlugin
+    plugin: rasters.worldpop_1km.WorldPop1kmYearlyPlugin
     params:
       variable: pop_total
   units: people

@@ -12,7 +12,7 @@
       begin: "2001"
       resolution: P1Y
   ingestion:
-    plugin: datasets.modis_landcover.ModisLandCoverPlugin
+    plugin: rasters.modis_landcover.ModisLandCoverPlugin
     params: {}
   units: null
   resolution: 500m x 500m
